@@ -1,7 +1,8 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from typing import Literal
 import pickle
 
@@ -61,8 +62,6 @@ class Actor(nn.Module):
         x = x / torch.norm(x, dim=-1, keepdim=True) * self.act_clip
         return x
     
-
-from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
 class ControlLLM(nn.Module):
     def __init__(self, model_name: str, prefix_size: int = 8, prefix_embedding_size: int = 64, prefix_pos: Literal ['start', 'mid', 'end'] = 'start'):

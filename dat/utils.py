@@ -123,7 +123,7 @@ def select_beginning_data(dataset: Path, num_turns = 5):
     for i, row in df.iterrows():
         input_text = row['input']
         target_text = row['target']
-        turn = re.findall('Turn #\d+', input_text)
+        turn = re.findall(r'Turn #\d+', input_text)
         if not turn or len(turn) < num_turns:
             new_df.loc[len(new_df)] = {'input': input_text, 'target': target_text, 'index': cnt}
             cnt += 1

@@ -176,23 +176,28 @@ def preprocess_function(examples, tokenizer, args):
     
     return model_inputs
 
+# dat/utils.py
 def preprocess_no_padding(examples, tokenizer):
     batch_size = len(examples['input'])
     targets = [str(x) for x in examples['target']]
     model_inputs = tokenizer(examples['input'])
-    labels = tokenizer(targets, add_special_tokens=False)  # don't add bos token because we concatenate with inputs
+    labels = tokenizer(targets, add_special_tokens=False)
+    
+    max_len = 800  # Cap prompt length to 800 tokens to prevent VRAM spikes
     
     for i in range(batch_size):
-        # adjust content
         sample_input_ids = model_inputs["input_ids"][i]
         label_input_ids = labels["input_ids"][i] + [tokenizer.eos_token_id]
-        # print(i, sample_input_ids, label_input_ids)
+        
+        # Truncate prompt from left if it exceeds max_len (keep recent turns)
+        if len(sample_input_ids) > max_len:
+            sample_input_ids = sample_input_ids[-max_len:]
+            
         model_inputs["input_ids"][i] = sample_input_ids + label_input_ids
         labels["input_ids"][i] = [-100] * len(sample_input_ids) + label_input_ids
         model_inputs["attention_mask"][i] = [1] * len(model_inputs["input_ids"][i])
 
     model_inputs["labels"] = labels["input_ids"]
-    
     return model_inputs
 
 if __name__ == '__main__':

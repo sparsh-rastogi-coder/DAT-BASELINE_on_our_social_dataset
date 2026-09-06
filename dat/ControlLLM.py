@@ -62,10 +62,24 @@ class Actor(nn.Module):
         return x
     
 
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+
 class ControlLLM(nn.Module):
     def __init__(self, model_name: str, prefix_size: int = 8, prefix_embedding_size: int = 64, prefix_pos: Literal ['start', 'mid', 'end'] = 'start'):
         super().__init__()
-        self.base_model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map="auto")
+
+        # 4-bit quantization (reduces VRAM from 8GB to ~4.5GB)
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16
+        )
+
+        self.base_model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=quantization_config,
+            device_map="auto"
+        )
+        self.base_model.gradient_checkpointing_enable()
         # self.base_model = torch.compile(base_model, mode="reduce-overhead", fullgraph=True)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         if self.tokenizer.pad_token_id is None:
@@ -120,11 +134,12 @@ class ControlLLM(nn.Module):
 
 
     def _handle_prefix(self, input_ids, attention_mask):
-        output = self.base_model(
-            attention_mask=attention_mask,
-            input_ids=input_ids,
-            output_hidden_states=True,
-        )
+        with torch.no_grad():
+            output = self.base_model(
+                attention_mask=attention_mask,
+                input_ids=input_ids,
+                output_hidden_states=True,
+            )
     
         # get the hidden state of the last layer of the last token of the input
         hidden_states = output.hidden_states
@@ -135,7 +150,9 @@ class ControlLLM(nn.Module):
 
         new_embeddings = self.embed_action(p, input_ids)
 
-        new_embeddings = new_embeddings.to(dtype=torch.bfloat16)
+        # Match base model's exact parameter dtype (bfloat16 or float16)
+        target_dtype = next(self.base_model.parameters()).dtype
+        new_embeddings = new_embeddings.to(dtype=target_dtype)
         return new_embeddings
 
     def forward(self, input_ids, attention_mask, labels = None, **kwargs):
@@ -149,8 +166,9 @@ class ControlLLM(nn.Module):
             if labels is not None:
                 new_labels[i] = torch.cat((torch.full((self.prefix_size, ), -100).to(labels.device), labels[i]), dim=0)
 
-        # convert to float16
-        new_attention_masks = new_attention_masks.to(torch.bfloat16)
+        # Match base model's exact parameter dtype
+        target_dtype = next(self.base_model.parameters()).dtype
+        new_attention_masks = new_attention_masks.to(target_dtype)
         if labels is not None:
             new_labels = new_labels.to(torch.long)
             
@@ -158,7 +176,7 @@ class ControlLLM(nn.Module):
             attention_mask=new_attention_masks,
             labels=new_labels,
             inputs_embeds=new_embeddings,
-            output_hidden_states=True,
+            # REMOVED: output_hidden_states=True (saves ~4-5 GB VRAM)
             **kwargs
         )
     

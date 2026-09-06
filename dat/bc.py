@@ -106,6 +106,11 @@ def main(args):
                     optimizer.zero_grad()
                 lr_scheduler.step()
                 pbar.update(1)
+                # Save checkpoint every 1,000 steps so you never lose progress
+                if (step + 1) % 1000 == 0:
+                    os.makedirs(f'weights/{experiment_name}', exist_ok=True)
+                    model.save_bc_layer(weight_path=f'weights/{experiment_name}/step={step+1}_bc.pth')
+                    print(f"\nSaved checkpoint at step {step+1}!")
 
             # handle the residual loss
             if step % args.grad_accum != args.grad_accum - 1:

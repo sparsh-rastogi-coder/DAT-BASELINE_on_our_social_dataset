@@ -13,6 +13,8 @@ from utils import preprocess_no_padding
 from ControlLLM import ControlLLM
 
 
+from huggingface_hub import get_token
+
 def load_data(data_src: Path):
     dataset = load_dataset('csv', data_files=str(data_src), split='train')
     return dataset
@@ -24,6 +26,8 @@ def main(args):
     experiment_name = f"prefix={args.prefix_length}_dim={args.prefix_embedding_size}_{args.prefix_pos}"
     # experiment_name = f"prefix={args.prefix_length}_dim={args.prefix_embedding_size}_lr={args.lr}_bs={args.batch_size}_accum={args.grad_accum}"
 
+    token = args.hf_token or os.environ.get("HF_TOKEN") or get_token()
+
     dataset = load_data(Path(args.dataset_path) / args.dataset)
     if args.debug:
         experiment_name = "debug_" + experiment_name
@@ -31,13 +35,13 @@ def main(args):
         args.num_epochs = 20
 
     # load model
-    model = ControlLLM(args.model_name, args.prefix_length, args.prefix_embedding_size, prefix_pos=args.prefix_pos)
+    model = ControlLLM(args.model_name, args.prefix_length, args.prefix_embedding_size, prefix_pos=args.prefix_pos, hf_token=token)
     if args.load_model:
         print("loading model... Epoch: ", args.load_model_epoch)
         model.load_bc_layer(weight_path=f'weights/{experiment_name}/epoch={args.load_model_epoch}_bc.pth')
 
     # preprocessing
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name, token=token)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token_id = tokenizer.eos_token_id
     
@@ -233,6 +237,7 @@ if __name__ == '__main__':
     parser.add_argument('--grad_accum', type=int, default=16)
     parser.add_argument('--prefix_length', type=int, default=2)
     parser.add_argument('--prefix_embedding_size', type=int, default=128)
+    parser.add_argument('--hf_token', type=str, default=None, help='Hugging Face access token')
 
     parser.add_argument('--debug', action='store_true', default=False)
     args = parser.parse_args()

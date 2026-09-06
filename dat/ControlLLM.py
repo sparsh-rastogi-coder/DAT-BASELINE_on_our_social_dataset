@@ -74,14 +74,16 @@ class ControlLLM(nn.Module):
             bnb_4bit_compute_dtype=torch.float16
         )
 
+        hf_token = os.environ.get("HF_TOKEN")
         self.base_model = AutoModelForCausalLM.from_pretrained(
             model_name,
             quantization_config=quantization_config,
-            device_map="auto"
+            device_map="auto",
+            token=hf_token
         )
         self.base_model.gradient_checkpointing_enable()
         # self.base_model = torch.compile(base_model, mode="reduce-overhead", fullgraph=True)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, token=hf_token)
         if self.tokenizer.pad_token_id is None:
             self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
 

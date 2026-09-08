@@ -431,7 +431,7 @@ if __name__ == "__main__":
     # TRY NOT TO MODIFY: start the game
     obs = envs.reset(args.env_idx)
     for i, global_step in tqdm(enumerate(range(start_step, start_step + args.total_timesteps))):
-        if args.learning_starts == args.total_timesteps:
+        if args.learning_starts >= args.total_timesteps:
             with torch.no_grad():
                 if args.use_pca:
                     actions = actor(torch.Tensor(obs).to(device))
@@ -512,19 +512,20 @@ if __name__ == "__main__":
                 writer.add_scalar("losses/qf1_value_var", qf1_a_values.std().item(), global_step)
                 writer.add_scalar("losses/qf2_value_var", qf2_a_values.std().item(), global_step)
 
-            if i % 50 == 0 and global_step >= start_step:
+            if i > 0 and i % 50 == 0 and global_step >= start_step:
                 episodic_returns, max_episodic_returns, asr = eval_actor(envs, actor, actor_bc, env_idx=args.env_idx, global_step=global_step)
-                dialog = envs.cur_dialog
-                attack1 = dialog[2]["content"]
-                attack2 = dialog[4]["content"]
-                attack3 = dialog[6]["content"]
                 obs = envs.reset(args.env_idx)
                 writer.add_scalar("eval/Mean Reward", episodic_returns, global_step)
                 writer.add_scalar("eval/Max Reward", max_episodic_returns, global_step)
                 writer.add_scalar("eval/ASR", asr, global_step)
-                wandb.log({"attack1": wandb.Html(attack1)}, step=global_step)
-                wandb.log({"attack2": wandb.Html(attack2)}, step=global_step)
-                wandb.log({"attack3": wandb.Html(attack3)}, step=global_step)
+                dialog = getattr(envs, "cur_dialog", [])
+                if args.track and len(dialog) > 6:
+                    attack1 = dialog[2].get("content", "") if isinstance(dialog[2], dict) else str(dialog[2])
+                    attack2 = dialog[4].get("content", "") if isinstance(dialog[4], dict) else str(dialog[4])
+                    attack3 = dialog[6].get("content", "") if isinstance(dialog[6], dict) else str(dialog[6])
+                    wandb.log({"attack1": wandb.Html(attack1)}, step=global_step)
+                    wandb.log({"attack2": wandb.Html(attack2)}, step=global_step)
+                    wandb.log({"attack3": wandb.Html(attack3)}, step=global_step)
 
             # if i % 50 == 0 and global_step >= start_step:
             #     if args.checkpoints_path != "":

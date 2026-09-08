@@ -105,8 +105,8 @@ class Args:
     """the learning rate of the optimizer"""
     learning_rate_actor: float = 1e-6
     """the learning rate of the optimizer"""
-    buffer_size: int = int(1e6)
-    """the replay memory buffer size"""
+    buffer_size: int = 50000
+    """the replay memory buffer size (50k is ~1.6GB RAM; 1e6 was 33GB and caused OOM)"""
     gamma: float = 0.99
     """the discount factor gamma"""
     tau: float = 0.005

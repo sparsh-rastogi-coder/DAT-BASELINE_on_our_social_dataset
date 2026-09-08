@@ -68,7 +68,7 @@ class Actor(nn.Module):
 from huggingface_hub import get_token
 
 class ControlLLM(nn.Module):
-    def __init__(self, model_name: str, prefix_size: int = 8, prefix_embedding_size: int = 64, prefix_pos: Literal ['start', 'mid', 'end'] = 'start', hf_token: str = None):
+    def __init__(self, model_name: str, prefix_size: int = 8, prefix_embedding_size: int = 64, prefix_pos: Literal ['start', 'mid', 'end'] = 'start', hf_token: str = None, training_mode: bool = False):
         super().__init__()
 
         # Resolve Hugging Face token from explicit arg, env var, or cached login
@@ -84,9 +84,13 @@ class ControlLLM(nn.Module):
             model_name,
             quantization_config=quantization_config,
             device_map="auto",
+            low_cpu_mem_usage=True,
             token=token
         )
-        self.base_model.gradient_checkpointing_enable()
+        # Gradient checkpointing reduces activation memory during BC training
+        # Do NOT enable it during RL inference (it adds overhead and can OOM)
+        if training_mode:
+            self.base_model.gradient_checkpointing_enable()
         # self.base_model = torch.compile(base_model, mode="reduce-overhead", fullgraph=True)
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, token=token)
         if self.tokenizer.pad_token_id is None:

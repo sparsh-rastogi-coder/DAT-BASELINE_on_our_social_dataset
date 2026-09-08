@@ -35,7 +35,7 @@ def main(args):
         args.num_epochs = 20
 
     # load model
-    model = ControlLLM(args.model_name, args.prefix_length, args.prefix_embedding_size, prefix_pos=args.prefix_pos, hf_token=token)
+    model = ControlLLM(args.model_name, args.prefix_length, args.prefix_embedding_size, prefix_pos=args.prefix_pos, hf_token=token, training_mode=True)
     if args.load_model:
         print("loading model... Epoch: ", args.load_model_epoch)
         model.load_bc_layer(weight_path=f'weights/{experiment_name}/epoch={args.load_model_epoch}_bc.pth')

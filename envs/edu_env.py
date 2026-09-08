@@ -235,11 +235,13 @@ class EducationEnv:
         dev = self.model.base_model.device
         input_ids = input_ids.to(dev)
 
+        prefix_tensor = prefixes if prefixes is not None else action
+        if hasattr(prefix_tensor, 'numel') and prefix_tensor.numel() == self.model.prefix_embedding_size:
+            prefix_tensor = self.model.bc_layer.upmapping(prefix_tensor)
+
         with torch.no_grad():
             if not self.test_baseline:
-                new_embeddings = self.model.embed_action(action, input_ids).to(
-                    dtype=next(self.model.base_model.parameters()).dtype
-                )
+                new_embeddings = self.model.embed_action(prefix_tensor, input_ids)
                 output = self.model.base_model.generate(
                     inputs_embeds=new_embeddings,
                     max_new_tokens=300,

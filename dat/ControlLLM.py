@@ -109,15 +109,20 @@ class ControlLLM(nn.Module):
 
     def embed_action(self, action, input_ids):
         # project prefix to the same dimension as the input
-        p = action.view(-1, self.prefix_size, self.base_model.config.hidden_size)
-
         input_embeddings = self.base_model.get_input_embeddings()
         embeddings = input_embeddings(input_ids)
+        p = action.view(-1, self.prefix_size, self.base_model.config.hidden_size).to(
+            dtype=embeddings.dtype, device=embeddings.device
+        )
 
         # concatenate prefix and input embeddings
         # skip padding tokens
         # find the first non-padding token in input_ids for all samples in the batch
-        new_embeddings = torch.empty((input_ids.shape[0], input_ids.shape[1] + self.prefix_size, self.base_model.config.hidden_size), device=input_ids.device)
+        new_embeddings = torch.empty(
+            (input_ids.shape[0], input_ids.shape[1] + self.prefix_size, self.base_model.config.hidden_size),
+            device=input_ids.device,
+            dtype=embeddings.dtype,
+        )
         if self.prefix_pos == 'start':
             # put the prefix tokens at the start of the input, just after the bos token
             for i in range(input_ids.shape[0]):

@@ -41,20 +41,43 @@ SCENARIOS_PATH = os.path.join(ENVS_DIR, "final_scenarios.json")
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
 def _extract_json(text: str) -> dict:
-    """Extract the first valid JSON object from raw LLM output."""
+    """Extract the first valid JSON object from raw LLM output, guaranteeing a valid dict with 'type'."""
     text = text.strip()
+    result = None
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
+        obj = json.loads(text)
+        if isinstance(obj, dict):
+            result = obj
+    except (json.JSONDecodeError, Exception):
         pass
-    match = re.search(r'\{.*\}', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            pass
-    # Fallback: treat raw text as a plain 'say' action
-    return {"type": "say", "text": text[:500]}
+
+    if result is None:
+        match = re.search(r'\{.*\}', text, re.DOTALL)
+        if match:
+            try:
+                obj = json.loads(match.group(0))
+                if isinstance(obj, dict):
+                    result = obj
+            except (json.JSONDecodeError, Exception):
+                pass
+
+    if result is None or not isinstance(result, dict):
+        result = {"type": "say", "text": text[:500]}
+
+    # Guarantee a valid 'type' field
+    if "type" not in result or result["type"] not in ("say", "reveal", "settle"):
+        if "settlement" in result or "decisions" in result:
+            result["type"] = "settle"
+            if "settlement" not in result:
+                result["settlement"] = result
+        elif "fact_id" in result:
+            result["type"] = "reveal"
+        else:
+            result["type"] = "say"
+            if "text" not in result:
+                result["text"] = result.get("message", result.get("content", str(result)[:500]))
+
+    return result
 
 
 def _compute_reward(scenario: dict, transcript: list) -> float:

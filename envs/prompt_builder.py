@@ -60,13 +60,16 @@ def _render_history(scenario: dict, transcript: list) -> str:
         return "(the conversation has not started yet -- you may be the first to speak)"
     lines = []
     for event in transcript:
-        speaker_name, _ = _agent_name(scenario, event["speaker"])
-        if event["type"] == "say":
+        speaker_name, _ = _agent_name(scenario, event.get("speaker", "Agent"))
+        event_type = event.get("type", "say")
+        if event_type == "say":
             lines.append(f"{speaker_name}: {event.get('text', '')}")
-        elif event["type"] == "reveal":
+        elif event_type == "reveal":
             lines.append(f"{speaker_name} (revealing {event.get('fact_id')}): {event.get('text', '')}")
-        elif event["type"] == "settle":
+        elif event_type == "settle":
             lines.append(f"{speaker_name} SETTLED with: {json.dumps(event.get('settlement', {}))}")
+        else:
+            lines.append(f"{speaker_name}: {event.get('text', str(event))}")
     return "\n".join(lines)
 
 

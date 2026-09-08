@@ -35,9 +35,7 @@ from ControlLLM import ControlLLM
 from grader import grade_content, grade_provenance
 from prompt_builder import build_turn_prompt
 
-SCENARIOS_PATH = os.path.join(
-    PIPELINE_DIR, "output", "education", "final_scenarios.json"
-)
+SCENARIOS_PATH = os.path.join(ENVS_DIR, "final_scenarios.json")
 
 
 # ─── helpers ──────────────────────────────────────────────────────────────────

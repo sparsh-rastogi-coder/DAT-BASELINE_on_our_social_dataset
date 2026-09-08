@@ -26,8 +26,10 @@ REPO_ROOT = os.path.dirname(ENVS_DIR)
 DAT_DIR = os.path.join(REPO_ROOT, "dat")
 PIPELINE_DIR = os.path.join(REPO_ROOT, "Coevolving_Social_Agents_Pipeline")
 
+# grader.py and prompt_builder.py are co-located in envs/ (committed to git)
+sys.path.insert(0, ENVS_DIR)
+# ControlLLM lives in dat/
 sys.path.insert(0, DAT_DIR)
-sys.path.insert(0, os.path.join(PIPELINE_DIR, "generate"))
 
 from ControlLLM import ControlLLM
 from grader import grade_content, grade_provenance
@@ -397,3 +399,4 @@ class EducationEnv:
         final_reward = self.cur_rewards[-1] if self.cur_rewards else 0.0
         print(f"[EduEnv] Saved → {path} | reward={final_reward:.3f} | "
               f"turns={self.global_turn}")
+

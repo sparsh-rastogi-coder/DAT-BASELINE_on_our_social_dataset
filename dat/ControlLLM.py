@@ -47,7 +47,9 @@ class Actor(nn.Module):
         )
         if use_pca:
             # load redteaming_exp/llama3_8B_embed_pcas.pkl
-            pcas =  pickle.load(open("redteaming_exp/llama3_8B_embed_pcas.pkl", "rb"))
+            _dat_dir = os.path.dirname(os.path.abspath(__file__))
+            _pca_path = os.path.join(_dat_dir, "redteaming_exp", "llama3_8B_embed_pcas.pkl")
+            pcas =  pickle.load(open(_pca_path, "rb"))
             self.register_buffer(
                 "upmapping", torch.tensor(pcas).to(torch.float32)[:fan_out]
             )

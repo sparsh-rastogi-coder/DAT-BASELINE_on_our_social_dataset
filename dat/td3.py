@@ -1,7 +1,8 @@
 import sys
 sys.path.append('../envs')
 
-from redteam_env import RedTeamEnv, INDICES
+from edu_env import EducationEnv as RedTeamEnv
+INDICES = list(range(10))  # Use first 10 education scenarios for evaluation
 import os
 import random
 import time
@@ -123,6 +124,8 @@ class Args:
     """the frequency of training policy (delayed)"""
     noise_clip: float = 0.5
     """noise clip parameter of the Target Policy Smoothing Regularization"""
+    hf_token: str = ""
+    """Hugging Face token for gated model access (e.g. LLaMA-3)"""
     def __post_init__(self):
         uu = uuid.uuid4()
         self.name = f"{self.exp_name}-{self.env_id}-{str(uu)[:8]}"
@@ -353,9 +356,9 @@ if __name__ == "__main__":
         judge_temp=args.judge_temp,
         opponent_model = args.opponent_model,
         max_turns = args.max_turns,
-        saving_dir = dialog_directory, 
+        saving_dir = dialog_directory,
         test_baseline = args.test_baseline,
-        mode="train", 
+        hf_token = args.hf_token if args.hf_token else None,
     )
 
 

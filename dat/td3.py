@@ -1,5 +1,8 @@
 import sys
-sys.path.append('../envs')
+import os
+# Resolve envs/ relative to this file's actual location, not the CWD
+_HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(_HERE, '..', 'envs'))
 
 from edu_env import EducationEnv as RedTeamEnv
 INDICES = list(range(10))  # Use first 10 education scenarios for evaluation
